@@ -1,0 +1,91 @@
+<style>
+  .price {
+    color: grey;
+    font-size: 22px;
+  }
+
+  .card button {
+    border: none;
+    outline: 0;
+    padding: 12px;
+    color: white;
+    background-color: #000;
+    text-align: center;
+    cursor: pointer;
+    width: 100%;
+    font-size: 18px;
+  }
+
+  .card button:hover {
+    opacity: 0.7;
+  }
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  /* Float four columns side by side */
+  .column {
+    float: left;
+    width: 33%;
+    padding: 0 10px;
+  }
+
+  /* Remove extra left and right margins, due to padding */
+  .row {margin: 0 -5px;}
+
+  /* Clear floats after the columns */
+  .row:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  /* Responsive columns */
+  @media screen and (max-width: 600px) {
+    .column {
+      width: 100%;
+      display: block;
+      margin-bottom: 20px;
+    }
+  }
+
+  /* Style the counter cards */
+  .card {
+    text-align: center;
+  }
+  
+  .section-padding {
+  	padding-top: 60px;
+  }
+</style>
+
+<div class="page-width section-padding">
+  <h2 id="rec-header"> {{ section.settings.custom_text_title }} </h2> 
+  <div class="row" id="octy-rec-products">
+  
+  </div>
+</div>
+
+{% schema %}
+  {
+    "name": "Just for you",
+    "settings": [
+      {
+        "id": "custom_text_title",
+        "type": "text",
+        "label": "Text box heading",
+        "default": "Just for you..."
+      }
+    ],
+    "presets": [
+      {
+        "name": "octy-product-recommendations",
+        "category": "Custom"
+      }
+    ]
+  }
+{% endschema %}

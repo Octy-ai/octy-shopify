@@ -1,0 +1,5 @@
+*config.dev.yaml
+*.vscode
+*.txt
+*.db
+*.DS_Store
