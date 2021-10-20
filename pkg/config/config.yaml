@@ -8,7 +8,7 @@ octy_api_uris:
   create_profile: https://api.octy.ai/v1/retention/profiles/create
   update_profile: https://api.octy.ai/v1/retention/profiles/update
   get_profiles: https://api.octy.ai/v1/retention/profiles
-  identify_profiles: https://api.octy.ai/v1/retention/profiles/identify
+  get_profiles_meta: https://api.octy.ai/v1/retention/profiles/metadata
   create_event: https://api.octy.ai/v1/retention/events/create
   create_item: https://api.octy.ai/v1/retention/items/create
   update_item : https://api.octy.ai/v1/retention/items/update

@@ -21,7 +21,7 @@ type Config struct {
 		CreateProfile          string `yaml:"create_profile"`
 		UpdateProfile          string `yaml:"update_profile"`
 		GetProfiles            string `yaml:"get_profiles"`
-		IdentifyProfiles       string `yaml:"identify_profiles"`
+		GetProfilesMeta        string `yaml:"get_profiles_meta"`
 		CreateEvent            string `yaml:"create_event"`
 		CreateItem             string `yaml:"create_item"`
 		UpdateItem             string `yaml:"update_item"`

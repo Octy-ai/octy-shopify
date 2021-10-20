@@ -155,18 +155,14 @@ func (ha Adapter) GetOctyProfile(customerID string) (map[string]interface{}, err
 	return structs.Map(profileResp.Profiles[0]), nil
 }
 
-func (ha Adapter) IdentifyOctyProfile(customerID string) (map[string]interface{}, error) {
-	identifyProfileReq := IdentifyOctyProfileReq{
-		Identifiers: []string{
-			customerID,
-		},
-	}
+func (ha Adapter) GetOctyProfileMeta(customerID string) (map[string]interface{}, error) {
 
-	requestBody, err := identifyProfileReq.Marshal()
-	if err != nil {
-		return nil, err
+	if customerID == "" {
+		return nil, errors.New("no customerID supplied")
 	}
-	req, err := http.NewRequest("POST", ha.config.OctyAPIURIs.IdentifyProfiles, bytes.NewBuffer(requestBody))
+	url := ha.config.OctyAPIURIs.GetProfilesMeta + "?ids=" + customerID
+
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -190,19 +186,35 @@ func (ha Adapter) IdentifyOctyProfile(customerID string) (map[string]interface{}
 		return nil, errors.New("Invalid HTTP status code: " + strconv.Itoa(resp.StatusCode))
 	}
 
-	identifyProfileResp, err := UnmarshalIdentifyOctyProfileResp(body)
+	getProfileMetaResp, err := UnmarshalOctyProfileMetaResp(body)
 	if err != nil {
 		return nil, err
 	}
 
-	profileIden := map[string]interface{}{
-		"Identifier":           identifyProfileResp.Identifiers[0].Identifier,
-		"ParentProfileID":      *identifyProfileResp.Identifiers[0].ParentProfileID,
-		"ParentCustomerID":     *identifyProfileResp.Identifiers[0].ParentCustomerID,
-		"AuthenticatedIDValue": *identifyProfileResp.Identifiers[0].AuthenticatedIDValue,
+	profileMeta := map[string]interface{}{
+		"ProvidedIdentifier": getProfileMetaResp.ProfilesMeta[0].ProvidedIdentifier,
+		"Profile": map[string]interface{}{
+			"ProfileExists": getProfileMetaResp.ProfilesMeta[0].Profile.ProfileExists,
+			"ProfileID":     getProfileMetaResp.ProfilesMeta[0].Profile.ProfileID,
+			"CustomerID":    getProfileMetaResp.ProfilesMeta[0].Profile.CustomerID,
+			"CreatedAt":     getProfileMetaResp.ProfilesMeta[0].Profile.CreatedAt,
+			"UpdatedAt":     getProfileMetaResp.ProfilesMeta[0].Profile.UpdatedAt,
+		},
+		"MergedInfo": map[string]interface{}{
+			"WasMerged":            getProfileMetaResp.ProfilesMeta[0].MergedInfo.WasMerged,
+			"MergedAt":             getProfileMetaResp.ProfilesMeta[0].MergedInfo.MergedAt,
+			"AuthenticatedIDKey":   getProfileMetaResp.ProfilesMeta[0].MergedInfo.AuthenticatedIDKey,
+			"AuthenticatedIDValue": getProfileMetaResp.ProfilesMeta[0].MergedInfo.AuthenticatedIDValue,
+			"ParentOrChild":        getProfileMetaResp.ProfilesMeta[0].MergedInfo.ParentOrChild,
+			"ParentProfile": map[string]interface{}{
+				"ParentProfileID":  getProfileMetaResp.ProfilesMeta[0].MergedInfo.ParentProfile.ParentProfileID,
+				"ParentCustomerID": getProfileMetaResp.ProfilesMeta[0].MergedInfo.ParentProfile.ParentCustomerID,
+			},
+			"MergedChildProfiles": getProfileMetaResp.ProfilesMeta[0].MergedInfo.MergedChildProfiles,
+		},
 	}
 
-	return profileIden, nil
+	return profileMeta, nil
 }
 
 // ** Events **

@@ -16,7 +16,7 @@ type RestPort interface {
 
 	GetOctyProfile(customerID string) (map[string]interface{}, error)
 
-	IdentifyOctyProfile(customerID string) (map[string]interface{}, error)
+	GetOctyProfileMeta(customerID string) (map[string]interface{}, error)
 
 	// Events
 

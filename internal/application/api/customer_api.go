@@ -4,6 +4,11 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	parentProfileLabel = "parent_profile"
+	childProfileLabel  = "child_profile"
+)
+
 // Create or Update octy profile with the given parameters.
 func (api Application) CreateUpdateCustomer(octyCustomerID string, shopifyCustomerID string, generatedNewID bool, hasCharged bool,
 	profileData map[string]interface{}, platformInfo map[string]interface{}) (string, string, error) {
@@ -24,82 +29,107 @@ func (api Application) CreateUpdateCustomer(octyCustomerID string, shopifyCustom
 		// In this case, we need to determine if the profile exists
 		// in both app.db and on Octy's servers.
 
-		existingProfile, err := api.rest.GetOctyProfile(octyCustomerID)
+		// Get profile metadata from server
+		profileMeta, err := api.rest.GetOctyProfileMeta(octyCustomerID)
 		if err != nil {
+			return "", "", err
+		}
+		var ParentOrChild *string = profileMeta["MergedInfo"].(map[string]interface{})["ParentOrChild"].(*string)
 
-			if err.Error() == "no profiles" {
-				// is NOT exisitng profile with customer_id : octy-customer-id
-				// In this case, we need to determine if the profile has been
-				// deleted or merged.
+		if profileMeta["Profile"].(map[string]interface{})["ProfileExists"] == false {
 
-				// identify profile
-				profileIden, err := api.rest.IdentifyOctyProfile(octyCustomerID)
-				if err != nil {
-					return "", "", err
-				}
+			// is NOT exisitng profile with customer_id : octy-customer-id
+			// In this case, we need to determine if the profile has been
+			// deleted or merged.
 
-				if profileIden["ParentProfileID"] != nil {
-					// is parent profile
-					// This tells us that the profile has been merged. In this case, we
-					// need to update the customer in app.db and pass the new customerID to the
-					// client so the value for octy-customer-id can be updated in local storage.
+			if profileMeta["MergedInfo"].(map[string]interface{})["WasMerged"].(bool) && *ParentOrChild == childProfileLabel {
+				// Profile was merged, is a child profile & has parent profile
+				// In this case, we need to update the customer in app.db and pass the customerID
+				// of the relative parent profile to the client so the value for octy-customer-id can be updated in local storage.
 
-					parentProfileID := profileIden["ParentProfileID"].(string)
-					parentCustomerID := profileIden["ParentCustomerID"].(string)
-					authenticatedIDValue := profileIden["AuthenticatedID"].(string)
+				parentProfileID := profileMeta["MergedInfo"].(map[string]interface{})["ParentProfile"].(map[string]interface{})["ParentProfileID"].(*string)
+				parentCustomerID := profileMeta["MergedInfo"].(map[string]interface{})["ParentProfile"].(map[string]interface{})["ParentCustomerID"].(*string)
+				authenticatedIDValue := profileMeta["MergedInfo"].(map[string]interface{})["AuthenticatedIDValue"].(*string)
 
-					if parentCustomerID != octyCustomerID {
-						// if the parent customer ID does not match provided octy-customer-id, then
-						// delete existing customer from app.db with provided octy-customer-id.
-						err := api.db.DeleteCustomer(octyCustomerID)
-						if err != nil {
-							return "", "", err
-						}
-					}
-
-					profileID, customerID, err := update(api, parentCustomerID, parentProfileID, authenticatedIDValue,
-						hasCharged, profileData, platformInfo)
-					if err != nil {
-						return "", "", err
-					}
-					return profileID, customerID, nil
-
-				} else {
-					// is NOT parent profile
-					// This tells us that the profile has been deleted. In this case, we
-					// need to delete the customer in app.db, create a new customer pass the new cty-customer-id to the
-					// client so the value for octy-customer-id can be updated in local storage.
-					id := uuid.New()
-					newOctyCustomerID := "octy-customer-id-" + id.String()
+				if *parentCustomerID != octyCustomerID {
+					// if the parent customer ID does not match provided octy-customer-id, then
+					// delete existing customer from app.db with provided octy-customer-id.
 					err := api.db.DeleteCustomer(octyCustomerID)
 					if err != nil {
 						return "", "", err
 					}
-					octyProfileID, err := create(api, newOctyCustomerID, shopifyCustomerID, hasCharged, profileData, platformInfo)
-					if err != nil {
-						return "", "", err
-					}
-
-					return octyProfileID, newOctyCustomerID, nil
-
 				}
 
+				profileID, customerID, err := update(api, *parentCustomerID, *parentProfileID, *authenticatedIDValue,
+					hasCharged, profileData, platformInfo)
+				if err != nil {
+					return "", "", err
+				}
+				return profileID, customerID, nil
+
 			} else {
-				// error occurred
-				return "", "", err
+				// Profile was NOT merged & has NO parent profile
+				// This tells us that the profile has been deleted. In this case, we
+				// need to delete the customer in app.db, create a new customer pass the new octy-customer-id to the
+				// client so the value for octy-customer-id can be updated in local storage.
+				id := uuid.New()
+				newOctyCustomerID := "octy-customer-id-" + id.String()
+				err := api.db.DeleteCustomer(octyCustomerID)
+				if err != nil {
+					return "", "", err
+				}
+				octyProfileID, err := create(api, newOctyCustomerID, shopifyCustomerID, hasCharged, profileData, platformInfo)
+				if err != nil {
+					return "", "", err
+				}
+
+				return octyProfileID, newOctyCustomerID, nil
+
 			}
 
 		} else {
 			// is exisitng profile with customer_id : octy-customer-id
-			// In this case, we simply update the customer in app.db with
-			// the provided parameters.
-			exProfileID := existingProfile["ProfileID"].(string)
-			profileID, customerID, err := update(api, octyCustomerID, exProfileID, shopifyCustomerID,
-				hasCharged, profileData, platformInfo)
-			if err != nil {
-				return "", "", err
+
+			if profileMeta["MergedInfo"].(map[string]interface{})["WasMerged"].(bool) && *ParentOrChild == parentProfileLabel {
+				// Profile was merged & is a parent profile
+				// This tells us that the profile has been merged. In this case, we
+				// need to update the customer in app.db and pass the new customerID to the
+				// client so the value for octy-customer-id can be updated in local storage.
+
+				parentProfileID := profileMeta["Profile"].(map[string]interface{})["ProfileID"].(*string)
+				parentCustomerID := profileMeta["Profile"].(map[string]interface{})["CustomerID"].(*string)
+				authenticatedIDValue := profileMeta["MergedInfo"].(map[string]interface{})["AuthenticatedIDValue"].(*string)
+
+				if *parentCustomerID != octyCustomerID {
+					// if the parent customer ID does not match provided octy-customer-id, then
+					// delete existing customer from app.db with provided octy-customer-id.
+					err := api.db.DeleteCustomer(octyCustomerID)
+					if err != nil {
+						return "", "", err
+					}
+				}
+
+				profileID, customerID, err := update(api, *parentCustomerID, *parentProfileID, *authenticatedIDValue,
+					hasCharged, profileData, platformInfo)
+				if err != nil {
+					return "", "", err
+				}
+				return profileID, customerID, nil
+
+			} else {
+
+				// In this case, we simply update the customer in app.db with
+				// the provided parameters.
+				exProfileID := profileMeta["Profile"].(map[string]interface{})["ProfileID"].(*string)
+				profileID, customerID, err := update(api, octyCustomerID, *exProfileID, shopifyCustomerID,
+					hasCharged, profileData, platformInfo)
+				if err != nil {
+					return "", "", err
+				}
+				return profileID, customerID, nil
+
 			}
-			return profileID, customerID, nil
+
 		}
 
 	}

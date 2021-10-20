@@ -79,7 +79,7 @@ If you do not have it already, download a docker desktop client here -> https://
 ## Usage
 
   
-### Anonymous customer identifiers
+### Anonymous customer sessions
 
 In order to track and merge unauthenticated, anonymous customer sessions with Octy, anonymous customer identifiers should be generated. These identifiers can then be used as the value for the customer_id parameter within a request body when creating Octy profiles. In this demo, anonymous customer identifiers are generated using the following format: *octy-customer-id-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx* 
 
@@ -337,7 +337,7 @@ python3 backend-processes/churn-prevention-email-campaign.py
 
   
 
-Every 24-48 hours the Octy profile identfy module merges profiles, including their respective event instances and attributes, by matching the value of the specififed store-customer-identifer key set in each anonymous profiles profile_data attribute. You can specify the name of the authenticated-id-key that the Octy profile identfy module will use to merge profiles by updating your  Octy <a href="https://octy.ai/docs/api#AccSetConfigurations">account configurations.</a>  (in this demo. the name of the authenticated-id-key is: shopify-customer-id) 
+Every 48 hours the Octy profile identfication module merges profiles, including their respective event instances and profile attributes. Profile are merged by matching the value of the specififed authenticated-id-key set in each anonymous profiles profile_data attribute. You can specify the name of the authenticated-id-key that the Octy profile identfication module will use to merge profiles by updating your Octy <a  href="https://octy.ai/docs/api#AccSetConfigurations">account configurations.</a> (in this demo. the name of the authenticated-id-key is: shopify-customer-id)
 
 Tracking and merging Anonymous & Authenticated customer sessions flows:
 ```mermaid
@@ -375,14 +375,13 @@ sequenceDiagram
 Title: Customer NOT authenticated. octy-customer-id in Local Storage
 note right of octy-shopify.js: Get octy-customer-id <br/>from Local Storage
 octy-shopify.js ->> octy-shopify app: /api/customers/createupdate
-octy-shopify app ->> Octy API: /v1/retention/profiles?id={octy-customer-id}
+octy-shopify app ->> Octy API: /v1/retention/profiles/metadata?ids={octy-customer-id}
 note right of octy-shopify app: Is Profile
 note right of octy-shopify app: Create or Update <br/>Customer in DB
 octy-shopify app ->> octy-shopify.js: OK
 note right of octy-shopify.js: *End flow*
 note right of octy-shopify app: Is NOT Profile
 note right of octy-shopify app: Profile has either <br/>been merged or deleted...<br/> In the case it has been merged,<br/> the parent profile <br/> customer_id is needed to <br/>set back in Local Storage.
-octy-shopify app ->> Octy API: /v1/retention/profiles/identfy {octy-customer-id, ...}
 note right of octy-shopify app: Is parent profile
 note right of octy-shopify app: Create or Update <br/>Customer in DB
 octy-shopify app ->> octy-shopify.js: OK
@@ -406,7 +405,7 @@ note right of octy-shopify.js: Get authenticated <br/>customer ID
 note right of octy-shopify.js: Set authenticated <br/>customer ID in<br/> profile_data>shopify-customer-id
 note right of octy-shopify.js: Get octy-customer-id <br/>from Local Storage
 octy-shopify.js ->> octy-shopify app: /api/customers/createupdate
-octy-shopify app ->> Octy API: /v1/retention/profiles?id={octy-customer-id}
+octy-shopify app ->> Octy API: /v1/retention/profilesmetadata?ids={octy-customer-id}
 note right of octy-shopify app: Is Profile
 note right of octy-shopify app: Create or Update <br/>Customer in DB
 note right of octy-shopify app: Use octy-customer-id value<br/>  as customer_id parameter<br/>in request body.
@@ -415,7 +414,6 @@ octy-shopify app ->> octy-shopify.js: OK
 note right of octy-shopify.js: *End flow*
 note right of octy-shopify app: Is NOT Profile
 note right of octy-shopify app: Profile has either <br/>been merged or deleted...<br/> In the case it has been merged,<br/> the parent profile <br/> customer_id is needed to <br/>set back in Local Storage.
-octy-shopify app ->> Octy API: /v1/retention/profiles/identify {octy-customer-id, ...}
 note right of octy-shopify app: Is parent profile
 note right of octy-shopify app: Use parent profile <br/>customer_id value<br/>  as customer_id parameter<br/>in request body.
 octy-shopify app ->> Octy API: /v1/retention/profiles/update

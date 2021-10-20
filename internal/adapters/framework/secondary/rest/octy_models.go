@@ -42,16 +42,6 @@ func (r *UpdateOctyProfileReq) Marshal() ([]byte, error) {
 
 // ---
 
-type IdentifyOctyProfileReq struct {
-	Identifiers []string `json:"identifiers"`
-}
-
-func (r *IdentifyOctyProfileReq) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-// ---
-
 type CreateOctyEventReq struct {
 	EventType       string                 `json:"event_type"`
 	EventProperties map[string]interface{} `json:"event_properties"`
@@ -212,6 +202,45 @@ func UnmarshalGetOctyProfileResp(data []byte) (GetOctyProfileResp, error) {
 
 // ---
 
+type OctyProfileMetaResp struct {
+	RequestMeta  RequestMeta    `json:"request_meta"`
+	ProfilesMeta []ProfilesMeta `json:"profiles_meta"`
+}
+
+type ProfilesMeta struct {
+	ProvidedIdentifier string     `json:"provided_identifier"`
+	Profile            MProfile   `json:"profile"`
+	MergedInfo         MergedInfo `json:"merged_info"`
+}
+
+type MergedInfo struct {
+	WasMerged            bool                 `json:"was_merged"`
+	MergedAt             *string              `json:"merged_at"`
+	AuthenticatedIDKey   *string              `json:"authenticated_id_key"`
+	AuthenticatedIDValue *string              `json:"authenticated_id_value"`
+	ParentOrChild        *string              `json:"parent_or_child"`
+	ParentProfile        ParentProfile        `json:"parent_profile"`
+	MergedChildProfiles  []MergedChildProfile `json:"merged_child_profiles"`
+}
+
+type MergedChildProfile struct {
+	ProfileID  string `json:"profile_id"`
+	CustomerID string `json:"customer_id"`
+}
+
+type ParentProfile struct {
+	ParentProfileID  *string `json:"parent_profile_id"`
+	ParentCustomerID *string `json:"parent_customer_id"`
+}
+
+type MProfile struct {
+	ProfileExists bool    `json:"profile_exists"`
+	ProfileID     *string `json:"profile_id"`
+	CustomerID    *string `json:"customer_id"`
+	CreatedAt     *string `json:"created_at"`
+	UpdatedAt     *string `json:"updated_at"`
+}
+
 type IdentifyOctyProfileResp struct {
 	Identifiers []Identifier `json:"identifiers"`
 }
@@ -224,8 +253,8 @@ type Identifier struct {
 	AuthenticatedIDValue *string `json:"authenticated_id_value"`
 }
 
-func UnmarshalIdentifyOctyProfileResp(data []byte) (IdentifyOctyProfileResp, error) {
-	var r IdentifyOctyProfileResp
+func UnmarshalOctyProfileMetaResp(data []byte) (OctyProfileMetaResp, error) {
+	var r OctyProfileMetaResp
 	err := json.Unmarshal(data, &r)
 	return r, err
 }
